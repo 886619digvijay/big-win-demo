@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>Big Win — Demo Game</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#141d30;--line:#28364e;--text:#f5f7fb;--muted:#aab6ca;--green:#18b979;--red:#ef4565;--gold:#ffd166}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(ellipse at top,#1b2a48 0,#0b1020 55%);color:var(--text);min-height:100vh}
+.wrap{max-width:760px;margin:auto;padding:22px 16px 36px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:27px;font-weight:900;letter-spacing:.3px}.brand span{color:var(--gold)}.pill{border:1px solid var(--line);border-radius:999px;padding:7px 11px;color:var(--muted);font-size:12px}
+.hero{text-align:center;padding:28px 0 18px}.hero h1{margin:0;font-size:clamp(30px,8vw,46px)}.hero p{margin:8px 0;color:var(--muted)}
+.card{background:rgba(20,29,48,.94);border:1px solid var(--line);border-radius:20px;padding:18px;margin-top:14px;box-shadow:0 12px 32px #0002}.balance{display:flex;justify-content:space-between;align-items:center;gap:10px}.label{color:var(--muted);font-size:13px}.points{font-size:27px;font-weight:800;color:var(--gold)}.timerbox{text-align:center;padding:20px 0}.timer{font-size:42px;font-weight:850;font-variant-numeric:tabular-nums}.timerlabel{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1.5px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.choice{border:0;border-radius:15px;padding:18px 10px;color:white;font-size:20px;font-weight:800;cursor:pointer;min-height:72px}.choice small{display:block;font-size:11px;font-weight:600;opacity:.85;margin-top:3px}.red{background:linear-gradient(135deg,#ff5574,#c91e47)}.green{background:linear-gradient(135deg,#25d995,#078554)}button:focus-visible{outline:3px solid white;outline-offset:3px}button:disabled{opacity:.45;cursor:not-allowed}
+.note{font-size:12px;color:var(--muted);line-height:1.55;margin-top:12px}.status{padding:11px 12px;border-radius:12px;background:#0e1728;border:1px solid var(--line);margin-top:12px;font-size:14px;min-height:42px}.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-weight:750}.history{display:grid;gap:8px}.entry{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#0e1728;border-radius:11px;font-size:13px}.dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:7px}.dot.red{background:var(--red)}.dot.green{background:var(--green)}.footer{text-align:center;color:var(--muted);font-size:11px;padding:18px 4px}.reset{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:10px;padding:8px 11px;cursor:pointer}
+@media(min-width:600px){.wrap{padding-top:32px}.card{padding:22px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <div class="brand">BIG <span>WIN</span></div>
+    <div class="pill">DEMO • VIRTUAL POINTS ONLY</div>
+  </header>
+  <section class="hero">
+    <h1>Play. Learn. Have Fun.</h1>
+    <p>A simple Red / Green number game demo</p>
+  </section>
+
+  <section class="card">
+    <div class="balance">
+      <div><div class="label">DEMO BALANCE</div><div class="points" id="balance">10,000 pts</div></div>
+      <button class="reset" id="reset">Reset demo</button>
+    </div>
+    <div class="timerbox">
+      <div class="timer" id="timer">00:30</div>
+      <div class="timerlabel">Time until next demo round</div>
+    </div>
+    <div class="label">Choose a colour for fun — no real-money stakes.</div>
+    <div class="choices">
+      <button class="choice red" id="redBtn">RED<small>Virtual points</small></button>
+      <button class="choice green" id="greenBtn">GREEN<small>Virtual points</small></button>
+    </div>
+    <div class="status" id="status" aria-live="polite">Choose Red or Green to make a demo prediction.</div>
+    <p class="note">This is a learning prototype. Results are generated locally in your browser and are not secure, official, or connected to a server. Points have no cash value and cannot be transferred or withdrawn.</p>
+  </section>
+
+  <section class="card">
+    <div class="section-title"><span>Recent Demo Results</span><span class="label" id="roundLabel">Round 1</span></div>
+    <div class="history" id="history"><div class="entry"><span>No rounds completed yet</span><span>—</span></div></div>
+  </section>
+  <footer class="footer">BIG WIN DEMO • For entertainment and learning only</footer>
+</main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  let balance = 10000, remaining = 30, round = 1, prediction = null, history = [];
+  function showBalance(){ $('balance').textContent = balance.toLocaleString() + ' pts'; }
+  function showHistory(){
+    $('history').innerHTML = '';
+    if (!history.length) {
+      const empty = document.createElement('div'); empty.className='entry';
+      empty.innerHTML='<span>No rounds completed yet</span><span>—</span>';
+      $('history').appendChild(empty); return;
+    }
+    history.slice(0,8).forEach(item=>{
+      const row=document.createElement('div'); row.className='entry';
+      const left=document.createElement('span');
+      const dot=document.createElement('i'); dot.className='dot '+item.color.toLowerCase();
+      left.append(dot, document.createTextNode('Round '+item.round+' · '+item.color));
+      const right=document.createElement('span'); right.textContent='Number: '+item.number;
+      row.append(left,right); $('history').appendChild(row);
+    });
+  }
+  function choose(color){
+    if (prediction) { $('status').textContent='You already chose for this round. Wait for the next round.'; return; }
+    prediction=color;
+    $('status').textContent='Your demo choice is '+color+'. Wait for the round result.';
+    $('redBtn').disabled=true; $('greenBtn').disabled=true;
+  }
+  function finishRound(){
+    const number=Math.floor(Math.random()*10);
+    const color=(number%2===0)?'GREEN':'RED';
+    history.unshift({round,color,number}); showHistory();
+    if(prediction){
+      if(prediction===color){ balance+=100; $('status').textContent='Round '+round+': '+number+' ('+color+'). Demo match! +100 virtual points.'; }
+      else {$('status').textContent='Round '+round+': '+number+' ('+color+'). No match this time. This is only a demo.';}
+    } else {$('status').textContent='Round '+round+': '+number+' ('+color+'). No choice was made.';}
+    showBalance(); round++; prediction=null; $('roundLabel').textContent='Round '+round;
+    $('redBtn').disabled=false; $('greenBtn').disabled=false;
+  }
+  $('redBtn').addEventListener('click',()=>choose('RED'));
+  $('greenBtn').addEventListener('click',()=>choose('GREEN'));
+  $('reset').addEventListener('click',()=>{
+    balance=10000; remaining=30; round=1; prediction=null; history=[];
+    $('status').textContent='Demo reset. Choose Red or Green to begin.';
+    $('redBtn').disabled=false; $('greenBtn').disabled=false;
+    $('roundLabel').textContent='Round 1'; showBalance(); showHistory(); $('timer').textContent='00:30';
+  });
+  setInterval(()=>{
+    remaining--;
+    if(remaining<=0){finishRound();remaining=30;}
+    $('timer').textContent='00:'+String(remaining).padStart(2,'0');
+  },1000);
+  showBalance(); showHistory();
+})();
+</script>
+</body>
+</html>
